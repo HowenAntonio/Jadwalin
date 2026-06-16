@@ -10,7 +10,6 @@ import {
 
 export default function CreateEvent() {
   const API_BASE = import.meta.env.VITE_API_URL;
-  const FE_BASE = window.location.origin;
 
   const [title, setTitle] = useState("");
   const [startDate, setStartDate] = useState("");
@@ -44,7 +43,7 @@ export default function CreateEvent() {
       });
 
       const id = response.data.eventId;
-      setGeneratedLink(`${FE_BASE}/event/${id}`);
+      setGeneratedLink(`${API_BASE}/event/${id}`);
     } catch (err) {
       console.error(err);
       setErrorMsg("Gagal membuat event. Coba lagi ya.");
