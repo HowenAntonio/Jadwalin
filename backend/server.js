@@ -4,9 +4,17 @@ import crypto from "crypto";
 import pool from "./db/db.js";
 import dotenv from "dotenv";
 
-dotenv.config();
+// dotenv.config();
+
+const API_URL = "/api/events";
+const PORT = process.env.PORT || 3000;
 
 const app = express();
+// const PORT = process.env.PORT || 3000;
+
+// app.listen(PORT, () => {
+//   console.log(`Server running on port ${PORT}`);
+// });
 
 app.use(cors());
 app.use(express.json());
@@ -16,7 +24,7 @@ app.use(express.json());
 | CREATE EVENT
 |--------------------------------------------------------------------------
 */
-app.post("/api/events", async (req, res) => {
+app.post(API_URL, async (req, res) => {
   try {
     const { title, startDate, endDate } = req.body;
 
@@ -47,7 +55,7 @@ app.post("/api/events", async (req, res) => {
 | GET ALL EVENTS
 |--------------------------------------------------------------------------
 */
-app.get("/api/events", async (req, res) => {
+app.get(API_URL, async (req, res) => {
   try {
     const [rows] = await pool.query(`
       SELECT *
@@ -69,7 +77,7 @@ app.get("/api/events", async (req, res) => {
 | GET EVENT BY ID
 |--------------------------------------------------------------------------
 */
-app.get("/api/events/:id", async (req, res) => {
+app.get(`${API_URL}/:id`, async (req, res) => {
   try {
     const [rows] = await pool.query(
       `
@@ -102,7 +110,7 @@ app.get("/api/events/:id", async (req, res) => {
 | SUBMIT AVAILABILITY
 |--------------------------------------------------------------------------
 */
-app.post("/api/events/:id/availability", async (req, res) => {
+app.post(`${API_URL}/:id/availability`, async (req, res) => {
   try {
     const { name, slots } = req.body;
 
@@ -175,7 +183,7 @@ app.post("/api/events/:id/availability", async (req, res) => {
 | GET PARTICIPANTS
 |--------------------------------------------------------------------------
 */
-app.get("/api/events/:id/participants", async (req, res) => {
+app.get(`${API_URL}/:id/participants`, async (req, res) => {
   try {
     const [participants] = await pool.query(
       `
@@ -219,6 +227,4 @@ try {
   console.error(err);
 }
 
-app.listen(3000, () => {
-  console.log("Server running on port 3000");
-});
+app.listen(PORT, "0.0.0.0", () => console.log(PORT));
