@@ -9,6 +9,9 @@ import {
 } from "react-icons/fa";
 
 export default function CreateEvent() {
+  const API_BASE = import.meta.env.VITE_API_URL;
+  const FE_BASE = window.location.origin;
+
   const [title, setTitle] = useState("");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
@@ -34,14 +37,14 @@ export default function CreateEvent() {
     try {
       setSubmitting(true);
 
-      const response = await axios.post("http://localhost:3000/api/events", {
+      const response = await axios.post(`${API_BASE}/api/events`, {
         title,
         startDate,
         endDate,
       });
 
       const id = response.data.eventId;
-      setGeneratedLink(`http://localhost:5173/event/${id}`);
+      setGeneratedLink(`${FE_BASE}/event/${id}`);
     } catch (err) {
       console.error(err);
       setErrorMsg("Gagal membuat event. Coba lagi ya.");

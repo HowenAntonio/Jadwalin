@@ -4,20 +4,58 @@ import crypto from "crypto";
 import pool from "./db/db.js";
 import dotenv from "dotenv";
 
-// dotenv.config();
-
-const API_URL = "/api/events";
-const PORT = process.env.PORT || 3000;
+dotenv.config();
 
 const app = express();
-// const PORT = process.env.PORT || 3000;
+const API_URL = "/api/events";
+const PORT = process.env.PORT || 8080;
 
-// app.listen(PORT, () => {
-//   console.log(`Server running on port ${PORT}`);
-// });
+/*
+|--------------------------------------------------------------------------
+| MIDDLEWARE
+|--------------------------------------------------------------------------
+*/
+app.use(cors({
+  origin: "*",
+}));
 
-app.use(cors());
 app.use(express.json());
+
+/*
+|--------------------------------------------------------------------------
+| ROOT (FIX "Cannot GET /")
+|--------------------------------------------------------------------------
+*/
+app.get("/", (req, res) => {
+  res.json({
+    status: "ok",
+    message: "Jadwalin API running 🚀"
+  });
+});
+
+/*
+|--------------------------------------------------------------------------
+| HEALTH CHECK
+|--------------------------------------------------------------------------
+*/
+app.get("/health", (req, res) => {
+  res.json({ status: "ok", message: "server running" });
+});
+
+/*
+|--------------------------------------------------------------------------
+| DB TEST
+|--------------------------------------------------------------------------
+*/
+app.get("/db-test", async (req, res) => {
+  try {
+    const [rows] = await pool.query("SELECT 1 AS result");
+    res.json({ db: "connected", result: rows[0].result });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ db: "failed", error: err.message });
+  }
+});
 
 /*
 |--------------------------------------------------------------------------
@@ -28,25 +66,25 @@ app.post(API_URL, async (req, res) => {
   try {
     const { title, startDate, endDate } = req.body;
 
+    if (!title || !startDate || !endDate) {
+      return res.status(400).json({ message: "Invalid payload" });
+    }
+
     const eventId = crypto.randomUUID();
 
     await pool.query(
       `
-      INSERT INTO events
-      (id, title, start_date, end_date)
+      INSERT INTO events (id, title, start_date, end_date)
       VALUES (?, ?, ?, ?)
       `,
-      [eventId, title, startDate, endDate],
+      [eventId, title, startDate, endDate]
     );
 
-    res.json({
-      eventId,
-    });
+    res.json({ eventId });
+
   } catch (err) {
     console.error(err);
-    res.status(500).json({
-      message: "Gagal membuat event",
-    });
+    res.status(500).json({ message: "Gagal membuat event" });
   }
 });
 
@@ -58,17 +96,14 @@ app.post(API_URL, async (req, res) => {
 app.get(API_URL, async (req, res) => {
   try {
     const [rows] = await pool.query(`
-      SELECT *
-      FROM events
+      SELECT * FROM events
       ORDER BY created_at DESC
     `);
 
     res.json(rows);
   } catch (err) {
     console.error(err);
-    res.status(500).json({
-      message: "Gagal mengambil event",
-    });
+    res.status(500).json({ message: "Gagal mengambil event" });
   }
 });
 
@@ -80,28 +115,19 @@ app.get(API_URL, async (req, res) => {
 app.get(`${API_URL}/:id`, async (req, res) => {
   try {
     const [rows] = await pool.query(
-      `
-      SELECT *
-      FROM events
-      WHERE id = ?
-      `,
-      [req.params.id],
+      `SELECT * FROM events WHERE id = ?`,
+      [req.params.id]
     );
 
-    const event = rows[0];
-
-    if (!event) {
-      return res.status(404).json({
-        message: "Event tidak ditemukan",
-      });
+    if (!rows.length) {
+      return res.status(404).json({ message: "Event tidak ditemukan" });
     }
 
-    res.json(event);
+    res.json(rows[0]);
+
   } catch (err) {
     console.error(err);
-    res.status(500).json({
-      message: "Gagal mengambil event",
-    });
+    res.status(500).json({ message: "Gagal mengambil event" });
   }
 });
 
@@ -114,21 +140,19 @@ app.post(`${API_URL}/:id/availability`, async (req, res) => {
   try {
     const { name, slots } = req.body;
 
+    if (!name || !Array.isArray(slots)) {
+      return res.status(400).json({ message: "Invalid payload" });
+    }
+
     const [existingParticipants] = await pool.query(
-      `
-      SELECT name
-      FROM participants
-      WHERE event_id = ?
-      `,
+      `SELECT name FROM participants WHERE event_id = ?`,
       [req.params.id]
     );
 
     let finalName = name;
 
     const sameNames = existingParticipants.filter(
-      (p) =>
-        p.name === name ||
-        p.name.startsWith(`${name} `)
+      (p) => p.name === name || p.name.startsWith(`${name} `)
     );
 
     if (sameNames.length > 0) {
@@ -139,42 +163,27 @@ app.post(`${API_URL}/:id/availability`, async (req, res) => {
 
     await pool.query(
       `
-      INSERT INTO participants
-      (id, event_id, name)
+      INSERT INTO participants (id, event_id, name)
       VALUES (?, ?, ?)
       `,
-      [
-        participantId,
-        req.params.id,
-        finalName,
-      ]
+      [participantId, req.params.id, finalName]
     );
 
     for (const slot of slots) {
       await pool.query(
         `
-        INSERT INTO availability
-        (participant_id, slot)
+        INSERT INTO availability (participant_id, slot)
         VALUES (?, ?)
         `,
-        [
-          participantId,
-          slot,
-        ]
+        [participantId, slot]
       );
     }
 
-    res.json({
-      success: true,
-      finalName,
-    });
+    res.json({ success: true, finalName });
 
   } catch (err) {
     console.error(err);
-
-    res.status(500).json({
-      message: "Gagal menyimpan availability",
-    });
+    res.status(500).json({ message: "Gagal menyimpan availability" });
   }
 });
 
@@ -186,45 +195,48 @@ app.post(`${API_URL}/:id/availability`, async (req, res) => {
 app.get(`${API_URL}/:id/participants`, async (req, res) => {
   try {
     const [participants] = await pool.query(
-      `
-      SELECT *
-      FROM participants
-      WHERE event_id = ?
-      `,
-      [req.params.id],
+      `SELECT * FROM participants WHERE event_id = ?`,
+      [req.params.id]
     );
 
-    for (const participant of participants) {
+    for (const p of participants) {
       const [slots] = await pool.query(
-        `
-        SELECT slot
-        FROM availability
-        WHERE participant_id = ?
-        `,
-        [participant.id],
+        `SELECT slot FROM availability WHERE participant_id = ?`,
+        [p.id]
       );
 
-      participant.slots = slots.map((s) => s.slot);
+      p.slots = slots.map(s => s.slot);
     }
 
     res.json(participants);
+
   } catch (err) {
     console.error(err);
-    res.status(500).json({
-      message: "Gagal mengambil participants",
-    });
+    res.status(500).json({ message: "Gagal mengambil participants" });
   }
 });
 
-try {
-  const connection = await pool.getConnection();
+/*
+|--------------------------------------------------------------------------
+| START DB CHECK (ON BOOT)
+|--------------------------------------------------------------------------
+*/
+(async () => {
+  try {
+    const conn = await pool.getConnection();
+    console.log("Database connected!");
+    conn.release();
+  } catch (err) {
+    console.error("Database failed!");
+    console.error(err.message);
+  }
+})();
 
-  console.log("Database connected!");
-
-  connection.release();
-} catch (err) {
-  console.error("Database failed!");
-  console.error(err);
-}
-
-app.listen(PORT, "0.0.0.0", () => console.log(PORT));
+/*
+|--------------------------------------------------------------------------
+| START SERVER
+|--------------------------------------------------------------------------
+*/
+app.listen(PORT, "0.0.0.0", () => {
+  console.log(`Server running on port ${PORT}`);
+});

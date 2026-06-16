@@ -10,6 +10,7 @@ import {
 import generateSlots from "../utils/generateSlots";
 
 export default function EventPage() {
+  const API_BASE = import.meta.env.VITE_API_URL;
   const { id } = useParams();
 
   const [event, setEvent] = useState(null);
@@ -30,7 +31,7 @@ export default function EventPage() {
   };
 
   useEffect(() => {
-    axios.get(`http://localhost:3000/api/events/${id}`).then((response) => {
+    axios.get(`${API_BASE}/api/events/${id}`).then((response) => {
       setEvent(response.data);
     });
   }, [id]);
@@ -64,7 +65,7 @@ export default function EventPage() {
     try {
       setSubmitting(true);
       const response = await axios.post(
-        `http://localhost:3000/api/events/${id}/availability`,
+        `${API_BASE}/api/events/${id}/availability`,
         { name, slots: selectedSlots },
       );
 
@@ -151,15 +152,12 @@ export default function EventPage() {
           </span>
         </div>
 
-        <div
-          className="alert alert-info"
-          style={{ marginBottom: 18 }}
-        >
+        <div className="alert alert-info" style={{ marginBottom: 18 }}>
           <FaInfoCircle className="alert-icon" />
           <span>
             Klik jam-jam yang kamu <strong>bisa</strong> hadir. Klik lagi untuk
-            membatalkan. Tekan tombol <em>Seharian</em> kalau kamu free
-            seharian penuh.
+            membatalkan. Tekan tombol <em>Seharian</em> kalau kamu free seharian
+            penuh.
           </span>
         </div>
 

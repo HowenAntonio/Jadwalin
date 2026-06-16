@@ -4,6 +4,7 @@ import axios from "axios";
 import { FaArrowLeft, FaUserFriends } from "react-icons/fa";
 
 export default function SummaryPage() {
+  const API_BASE = import.meta.env.VITE_API_URL;
   const { id } = useParams();
 
   const navigate = useNavigate();
@@ -14,7 +15,7 @@ export default function SummaryPage() {
     const loadData = async () => {
       try {
         const response = await axios.get(
-          `http://localhost:3000/api/events/${id}/participants`,
+          `${API_BASE}/api/events/${id}/participants`,
         );
 
         setParticipants(response.data);
@@ -129,24 +130,15 @@ export default function SummaryPage() {
         <div className="legend">
           <span>Legenda:</span>
           <span className="legend-item">
-            <span
-              className="legend-swatch"
-              style={{ background: "#dcfce7" }}
-            />
+            <span className="legend-swatch" style={{ background: "#dcfce7" }} />
             Sedikit
           </span>
           <span className="legend-item">
-            <span
-              className="legend-swatch"
-              style={{ background: "#4ade80" }}
-            />
+            <span className="legend-swatch" style={{ background: "#4ade80" }} />
             Banyak
           </span>
           <span className="legend-item">
-            <span
-              className="legend-swatch"
-              style={{ background: "#22c55e" }}
-            />
+            <span className="legend-swatch" style={{ background: "#22c55e" }} />
             Terbaik
           </span>
         </div>
