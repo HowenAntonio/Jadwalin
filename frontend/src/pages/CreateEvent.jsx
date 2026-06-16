@@ -43,7 +43,7 @@ export default function CreateEvent() {
       });
 
       const id = response.data.eventId;
-      setGeneratedLink(`${API_BASE}/event/${id}`);
+      setGeneratedLink(`${window.location.origin}/event/${id}`);
     } catch (err) {
       console.error(err);
       setErrorMsg("Gagal membuat event. Coba lagi ya.");
